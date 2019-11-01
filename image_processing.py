@@ -40,17 +40,20 @@ def get_world_coordinates(x, y, w, h):
 
 
 def main():
-    img = cv2.imread('pics/X3big_Y3smallR_south.jpg')
-    hsv, x, y, w, h = get_bounding_box(img)
-    x_c, y_c = get_world_coordinates(x, y, w, h)
-    print(x_c, y_c)
-    out = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    # link to article I used: https://medium.com/@muskulpesent/create-numpy-array-of-images-fecb4e514c4b
+    files = glob.glob("/pics/*.jpg")  # modify this image path according to what you have
+    for my_file in files:
+        img = cv2.imread(my_file)
+        hsv, x, y, w, h = get_bounding_box(img)
+        x_c, y_c = get_world_coordinates(x, y, w, h)
+        print(x_c, y_c)
+        out = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
-    cv2.rectangle(out, (x, y), (x + w, y + h), (255, 0, 0), 2)
-    img = rescale_frame(out)
-    cv2.imshow('image', img)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
+        cv2.rectangle(out, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        img = rescale_frame(out)
+        cv2.imshow('image', img)
+        cv2.waitKey()
+        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
