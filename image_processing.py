@@ -14,14 +14,19 @@ def rescale_frame(frame, percent=200):
 
 def get_bounding_box(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, (0, 90, 120), (190, 255, 255))
+    h, s, v = cv2.split(hsv)
+    h, s, v = cv2.equalizeHist(h), cv2.equalizeHist(s), cv2.equalizeHist(v)
+    thresh_h = cv2.bitwise_not(cv2.inRange(h, 12, 240))
+    thresh_s = cv2.inRange(s, 220, 255)
+    thresh_v = cv2.inRange(v, 100, 255)
+    mask = thresh_h & thresh_v & thresh_s
+
     kernel_open = np.ones((5, 5))
     kernel_close = np.ones((20, 20))
     mask_open = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_open)
     mask_close = cv2.morphologyEx(mask_open, cv2.MORPH_CLOSE, kernel_close)
     mask_blurred = cv2.GaussianBlur(mask_close, (5, 5), 0)
-    contours, h = cv2.findContours(mask_close.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(hsv, contours, -1, (255, 0, 0), 3)
+    contours, h = cv2.findContours(mask_blurred.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     prev = 0
     contour = contours[0]
     for i in range(len(contours)):
@@ -43,10 +48,14 @@ def get_world_coordinates(x, y, w, h):
 
 def main():
     # link to article I used: https://medium.com/@muskulpesent/create-numpy-array-of-images-fecb4e514c4b
-    files = glob.glob("/pics/*.jpg")  # modify this image path according to what you have
+    files = glob.glob("pics/*.jpg")  # modify this image path according to what you have
     for my_file in files:
         img = cv2.imread(my_file)
-        hsv, x, y, w, h = get_bounding_box(img)
+        print(my_file)
+        try:
+            hsv, x, y, w, h = get_bounding_box(img)
+        except IndexError:
+            continue
         x_c, y_c = get_world_coordinates(x, y, w, h)
         print(x_c, y_c)
         out = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
