@@ -1,5 +1,4 @@
 import glob
-
 import numpy as np
 import cv2
 import constants as c
@@ -40,7 +39,6 @@ def get_bounding_box(img):
 
 def get_world_coordinates(x, y, w, h):
     x_c = (c.FOCAL_LENGTH_MM*c.CONE_HEIGHT_MM*c.IMAGE_HEIGHT_PIXELS)/(h*c.SENSOR_HEIGHT_MM)
-
     y_mm = ((x - c.IMAGE_WIDTH_PIXELS/2)*c.SENSOR_WIDTH_MM)/c.IMAGE_WIDTH_PIXELS
     y_c = (y_mm*x_c)/c.FOCAL_LENGTH_MM
     return x_c, y_c
