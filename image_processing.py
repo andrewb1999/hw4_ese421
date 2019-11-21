@@ -45,7 +45,6 @@ def get_world_coordinates(x, y, w, h):
 
 
 def main():
-    # link to article I used: https://medium.com/@muskulpesent/create-numpy-array-of-images-fecb4e514c4b
     files = glob.glob("pics/*.jpg")  # modify this image path according to what you have
     for my_file in files:
         img = cv2.imread(my_file)
