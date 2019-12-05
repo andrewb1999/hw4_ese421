@@ -3,9 +3,10 @@ import numpy as np
 import math
 import operator
 
-
-# This is the Direction class used for
-# providing each waypoint with a unit direction vector
+'''
+This is the Direction class used for
+providing each waypoint with a unit direction vector
+'''
 class Direction:
     i = 0
     j = 0
@@ -14,14 +15,11 @@ class Direction:
         self.i = math.cos(math.radians(theta))
         self.j = math.sin(math.radians(theta))
 
-
 '''
 This is the Point class which is used to create
 a Point object that has a x position, y position, and
 a direction vector.
 '''
-
-
 class Point:
     def __init__(self, x, y, d):
         self.x = x
@@ -35,13 +33,10 @@ class Point:
     def getY():
         print(y)
 
-
 '''
 Function to calculate a list of potential 
 test values for p1 and p2.
 '''
-
-
 def controlPoint(p0, p3):
     diffx = abs(p3.x - p0.x)
     diffy = abs(p3.y - p0.y)
@@ -61,7 +56,6 @@ def controlPoint(p0, p3):
         p2List.append(Point(p2x, p2y, 0))
     return p1List, p2List
 
-
 '''
 Function to determine the bezier curve given 
 a list of way points. This function optimizes the 
@@ -69,8 +63,6 @@ bezier curve between each pair of waypoints by minimizing
 the max curvature over a list of test values for 
 p1 and p2.
 '''
-
-
 def bezierCurve(wp, t):
     xfinal = []  # list to store all the x values in final bezier curve
     yfinal = []  # list to store all the y values in final bezier curve
