@@ -7,9 +7,12 @@ import operator
 # This is the Direction class used for
 # providing each waypoint with a unit direction vector
 class Direction:
-    def __init__(self, i, j):
-        self.i = i
-        self.j = j
+    i = 0
+    j = 0
+
+    def __init__(self, theta):
+        self.i = math.cos(math.radians(theta))
+        self.j = math.sin(math.radians(theta))
 
 
 '''
@@ -17,6 +20,8 @@ This is the Point class which is used to create
 a Point object that has a x position, y position, and
 a direction vector.
 '''
+
+
 class Point:
     def __init__(self, x, y, d):
         self.x = x
@@ -35,12 +40,19 @@ class Point:
 Function to calculate a list of potential 
 test values for p1 and p2.
 '''
+
+
 def controlPoint(p0, p3):
     diffx = abs(p3.x - p0.x)
     diffy = abs(p3.y - p0.y)
     p1List = []
     p2List = []
-    for i in range(1, 1500, 5):
+    if (diffx == 0):
+        diffx = diffy
+    if (diffy == 0):
+        diffy = diffx
+
+    for i in range(1, 1000, 5):
         p1x = p0.x + (diffx / 3.) * (i / 100) * p0.d.i
         p1y = p0.y + (diffy / 3.) * (i / 100) * p0.d.j
         p2x = p3.x - (diffx / 3.) * (i / 100) * p3.d.i
@@ -57,6 +69,8 @@ bezier curve between each pair of waypoints by minimizing
 the max curvature over a list of test values for 
 p1 and p2.
 '''
+
+
 def bezierCurve(wp, t):
     xfinal = []  # list to store all the x values in final bezier curve
     yfinal = []  # list to store all the y values in final bezier curve
@@ -106,12 +120,28 @@ def bezierCurve(wp, t):
         p1 = p1List[min_index]  # obtain optimal p1 value
         p2 = p2List[min_index]  # obtain optimal p2 value
 
+        print("waypoint_x: ", p0.x)
+        print("waypoint_y: ", p0.y)
+
         for p in t:
             # Calculate Curve Points from Q(t)
             x = (pow(1 - p, 3) * p0.x) + (3 * p * pow(1 - p, 2) * p1.x) + (3 * pow(p, 2) * (1 - p) * p2.x) + (
                         pow(p, 3) * p3.x)
             y = (pow(1 - p, 3) * p0.y) + (3 * p * pow(1 - p, 2) * p1.y) + (3 * pow(p, 2) * (1 - p) * p2.y) + (
                         pow(p, 3) * p3.y)
+            # Calculate points from Q'(t)
+            x1d = 3 * pow(1 - p, 2) * (p1.x - p0.x) + 6 * (1 - p) * p * (p2.x - p1.x) + 3 * pow(p, 2) * (p3.x - p2.x)
+            y1d = 3 * pow(1 - p, 2) * (p1.y - p0.y) + 6 * (1 - p) * p * (p2.y - p1.y) + 3 * pow(p, 2) * (p3.y - p2.y)
+            # Calculate points from Q''(t)
+            x2d = 6 * (1 - p) * (p2.x - 2 * p1.x + p0.x) + 6 * p * (p3.x - 2 * p2.x + p1.x)
+            y2d = 6 * (1 - p) * (p2.y - 2 * p1.y + p0.y) + 6 * p * (p3.y - 2 * p2.y + p1.y)
+
+            # Calculate Curvature at t
+            k = abs((x2d * y1d + x1d * y2d) / pow(math.sqrt(pow(x1d, 2) + pow(y1d, 2)), 3))
+
+            # Calculate and print steering angle
+            steering_angle = math.degrees(math.atan(6.3 / (1 / k)))
+            print("steering angle: ", steering_angle)
 
             xfinal.append(x)  # append x points to xfinal
             yfinal.append(y)  # append y points to yfinal
@@ -121,10 +151,12 @@ def bezierCurve(wp, t):
 
 def main():
     # Initialize way points
-    waypoints = [Point(0, 0, Direction(0, 1)), Point(2, 2, Direction(1, 0)),
-                 Point(11, 3, Direction(1, 0)), Point(12, 7, Direction(-1, 0)),
-                 Point(8, -2, Direction(-1, 0)),
-                 Point(0, 0, Direction(0, 1))]
+    waypoints = [Point(804, 227, Direction(180)),
+                 Point(503, 369, Direction(-135)),
+                 Point(613, 404, Direction(0)),
+                 Point(613, 137, Direction(-45)),
+                 Point(893, 137, Direction(90)),
+                 Point(804, 227, Direction(180))]
 
     # range of t values
     t = np.arange(0, 1.05, 0.05).tolist()
