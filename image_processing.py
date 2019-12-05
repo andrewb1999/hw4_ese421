@@ -1,4 +1,10 @@
-import glob
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+from smbus import SMBus
+import struct
+import traceback
+import time
+import cv2
 import numpy as np
 import cv2
 import constants as c
@@ -25,7 +31,7 @@ def get_bounding_box(img):
     mask_open = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_open)
     mask_close = cv2.morphologyEx(mask_open, cv2.MORPH_CLOSE, kernel_close)
     mask_blurred = cv2.GaussianBlur(mask_close, (5, 5), 0)
-    contours, h = cv2.findContours(mask_blurred.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    _, contours, _= cv2.findContours(mask_blurred, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     prev = 0
     contour = contours[0]
     for i in range(len(contours)):
@@ -44,25 +50,73 @@ def get_world_coordinates(x, y, w, h):
     return x_c, y_c
 
 
-def main():
-    files = glob.glob("pics/*.jpg")  # modify this image path according to what you have
-    for my_file in files:
-        img = cv2.imread(my_file)
-        print(my_file)
-        try:
-            hsv, x, y, w, h = get_bounding_box(img)
-        except IndexError:
-            continue
-        x_c, y_c = get_world_coordinates(x, y, w, h)
-        print(x_c, y_c)
-        out = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+def process_image(img):
+    hsv, x, y, w, h = get_bounding_box(img)
+    x_c, y_c = get_world_coordinates(x, y, w, h)
+    return x_c, y_c
 
-        cv2.rectangle(out, (x, y), (x + w, y + h), (255, 0, 0), 2)
-        img = rescale_frame(out)
-        cv2.imshow('image', img)
-        cv2.waitKey()
-        cv2.destroyAllWindows()
+
+def main():
+    com = ArduinoCommunicator(0x8)
+    camera = PiCamera()
+    camera.resolution = (640, 480)
+    camera.framerate = 32
+    rawCapture = PiRGBArray(camera, size=(640, 480))
+    time.sleep(0.1)
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        image = frame.array
+        try:
+            x_c, y_c = process_image(image)
+            com.write_float_to_register(x_c, com.data_to_arduino_register["cone_x"])
+            com.write_float_to_register(y_c, com.data_to_arduino_register["cone_y"])
+        except (IndexError, OSError):
+            pass
+        finally:
+            rawCapture.truncate(0)
+            time.sleep(0.5)
+
+
+class ArduinoCommunicator:
+    def __init__(self, arduino_address):
+        self.address = arduino_address
+        self.bus = SMBus(1)
+        self.write_attempt = 0
+        self.data_from_arduino = dict.fromkeys(["IMU data"])
+        self.UPDATE_SEND_REGISTER = 11
+
+        self.data_to_arduino_register = {
+            "cone_x": 1,
+            "cone_y": 2
+        }
+
+        self.SIZE_OF_ARDUINO_SEND_REGISTERS = 8
+
+    def write_float_to_register(self, num, register):
+        """
+        Writes a float into the Arduino's receive register
+        """
+
+        if register < 0 or register > 7:
+            raise Exception("Error in write float: register must be in [0,7]")
+        data = list(bytearray(str(num), 'utf8'))
+        self._write(register, data)
+
+    def _write(self, register, data):
+        timeout = 10
+        try:
+            self.bus.write_i2c_block_data(self.address, register, data)
+            self.write_attempt = 0
+        except Exception as e:
+            self.write_attempt += 1
+            if self.write_attempt < timeout:
+                print("Failed to write due to Exception " + str(e) + ". Trying again")
+                self._write(register, data)
+            else:
+                print("Timed out writing")
+                traceback.print_exc()
 
 
 if __name__ == "__main__":
     main()
+
+
